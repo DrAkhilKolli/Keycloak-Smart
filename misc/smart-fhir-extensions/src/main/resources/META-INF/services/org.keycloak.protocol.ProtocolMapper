@@ -1,0 +1,3 @@
+org.keycloak.smartfhir.mappers.FhirUserClaimMapper
+org.keycloak.smartfhir.mappers.PatientPrefixUserAttributeMapper
+org.keycloak.smartfhir.mappers.UserAttributeMapper

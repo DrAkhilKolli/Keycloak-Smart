@@ -1,0 +1,270 @@
+{
+  "realm": "${SMART_REALM}",
+  "enabled": true,
+  "browserFlow": "SMART App Launch",
+  "groups": [
+    {
+      "name": "fhirUser"
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "fhirUser",
+      "description": "Permission to retrieve current logged-in user",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Permission to retrieve current logged-in user"
+      },
+      "protocolMappers": [
+        {
+          "name": "fhirUser Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-fhir-user-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "resourceIdAttribute": "resourceId",
+            "resourceTypeAttribute": "fhirResourceType",
+            "defaultResourceType": "Patient",
+            "claim.name": "fhirUser",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "launch/patient",
+      "description": "Used by clients to request a patient-scoped access token",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "Patient ID Claim Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "resourceId",
+            "claim.name": "patient_id",
+            "jsonType.label": "String",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "Patient Response Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "patient_id",
+            "claim.name": "patient",
+            "jsonType.label": "String",
+            "id.token.claim": "false",
+            "access.token.claim": "false",
+            "access.tokenResponse.claim": "true"
+          }
+        },
+        {
+          "name": "Group Membership Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "group",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "patient/*.read",
+      "description": "Read access to all data for the patient",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Read access to all data for the patient"
+      },
+      "protocolMappers": [
+        {
+          "name": "Audience Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "${FHIR_BASE_URL}",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "patient/Patient.read",
+      "description": "Read access to Patient resources for the patient",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Read access to Patient resources for the patient"
+      },
+      "protocolMappers": [
+        {
+          "name": "Audience Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "${FHIR_BASE_URL}",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "user/*.read",
+      "description": "Read access to any resource type for an authenticated EHR user (Practitioner, etc.)",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Read access to FHIR resources as the current EHR user"
+      },
+      "protocolMappers": [
+        {
+          "name": "Audience Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "${FHIR_BASE_URL}",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "user/Practitioner.read",
+      "description": "Read access to Practitioner resources for the authenticated EHR user",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Read access to Practitioner resources"
+      },
+      "protocolMappers": [
+        {
+          "name": "Audience Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "${FHIR_BASE_URL}",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "SMART App Launch",
+      "description": "Browser flow with SMART audience validation and patient launch context support",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "flowAlias": "SMART Login",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "SMART Login",
+      "description": "Username/password login with SMART audience validation and patient selection",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "audience-validator",
+          "authenticatorConfig": "smart-audience-config",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        },
+        {
+          "authenticator": "auth-select-patient",
+          "authenticatorConfig": "smart-patient-selection-config",
+          "requirement": "REQUIRED",
+          "priority": 30,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "smart-audience-config",
+      "config": {
+        "audiences": "${FHIR_BASE_URL}##${INTERNAL_FHIR_URL}"
+      }
+    },
+    {
+      "alias": "smart-patient-selection-config",
+      "config": {
+        "internalFhirUrl": "${INTERNAL_FHIR_URL}"
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "${SMART_CLIENT_ID}",
+      "name": "SMART Launch Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "rootUrl": "http://localhost",
+      "redirectUris": [
+        "${SMART_CLIENT_REDIRECT_URI}"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "optionalClientScopes": [
+        "fhirUser",
+        "launch/patient",
+        "patient/*.read",
+        "patient/Patient.read",
+        "user/*.read",
+        "user/Practitioner.read"
+      ]
+    }
+  ]
+}
