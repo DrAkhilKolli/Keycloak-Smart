@@ -1,0 +1,120 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ClinicalVault – Keycloak image build
+#
+# Builds the custom Keycloak image (with SMART on FHIR extensions) and pushes
+# it to GHCR.  This workflow lives in the keycloak-main repository.
+#
+# Triggers
+#   • push to main                → :sha + :latest
+#   • push of v* tag              → :sha + :latest + :vX.Y.Z
+#   • workflow_dispatch           → manual rebuild
+#
+# Build steps:
+#   1. pnpm build (account-ui + themes-vendor)
+#   2. Maven build (quarkus/dist tar.gz + smart-fhir-extensions JAR)
+#   3. docker build (multi-stage: ubi9 + ubi9-micro)
+#   4. Push to ghcr.io/drakhilkolli/clinivault-keycloak
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: ClinicalVault – Build Keycloak image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: drakhilkolli/clinivault-keycloak
+
+jobs:
+  build-push:
+    name: Build Keycloak image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── pnpm (JS assets) ──────────────────────────────────────────────────
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build JS assets
+        run: |
+          pnpm --filter @keycloak/keycloak-account-ui --filter themes-vendor build
+
+      # ── Maven (Java build) ────────────────────────────────────────────────
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build Keycloak distribution (quarkus/dist)
+        run: |
+          ./mvnw -B -q -f pom.xml \
+            -pl quarkus/dist \
+            -am \
+            -Dmaven.test.skip=true \
+            package
+
+      - name: Build SMART FHIR extensions JAR
+        run: |
+          ./mvnw -B -q -f pom.xml \
+            -pl misc/smart-fhir-extensions \
+            -am \
+            -Dmaven.test.skip=true \
+            package
+
+      # ── Docker build + push ───────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: misc/smart-fhir-extensions/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

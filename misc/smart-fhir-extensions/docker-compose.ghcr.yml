@@ -1,0 +1,166 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ClinicalVault – Full stack using pre-built GHCR images
+#
+# Use this file when you want to run the full Keycloak + FHIR stack locally
+# WITHOUT building from source, or when running CI integration tests.
+#
+# Usage (local):
+#   docker compose --env-file .env.smart-keycloak -f docker-compose.ghcr.yml up -d
+#
+# Images are pulled from GHCR. Log in first:
+#   echo "$GITHUB_TOKEN" | docker login ghcr.io -u <github-username> --password-stdin
+#
+# To pin to a specific version, set in .env.smart-keycloak:
+#   SMART_FHIR_IMAGE=ghcr.io/drakhilkolli/clinivault-fhir:v1.2.0
+#   SMART_KEYCLOAK_IMAGE=ghcr.io/drakhilkolli/clinivault-keycloak:v1.2.0
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: smart-fhir-ghcr
+
+services:
+  fhir:
+    image: ${SMART_FHIR_IMAGE:-ghcr.io/drakhilkolli/clinivault-fhir:latest}
+    pull_policy: always
+    container_name: ${SMART_FHIR_CONTAINER_NAME:-smart-fhir-local}
+    depends_on:
+      fhir-schema-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_started
+    ports:
+      - "${SMART_FHIR_HTTP_PORT:-8081}:9080"
+    environment:
+      SMART_CLIENT_ID: ${SMART_CLIENT_ID}
+      FHIR_DB_HOST: ${FHIR_DB_HOST:-postgres-fhir}
+      FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
+      FHIR_DB_NAME: ${FHIR_DB_NAME:-fhirdb}
+      FHIR_DB_SCHEMA: ${FHIR_DB_SCHEMA:-fhirdata}
+      FHIR_DB_USER: ${FHIR_DB_USER:-fhirserver}
+      FHIR_DB_PASS: ${FHIR_DB_PASS:-fhir-dev-password}
+      FHIR_DB_SSL_MODE: ${FHIR_DB_SSL_MODE:-disable}
+      ABAC_ENABLED: ${ABAC_ENABLED:-false}
+      ABAC_REQUIRE_TENANT: ${ABAC_REQUIRE_TENANT:-false}
+      ABAC_REQUIRE_ORG: ${ABAC_REQUIRE_ORG:-false}
+      ABAC_ALLOWED_PURPOSES: ${ABAC_ALLOWED_PURPOSES:-TREAT,HPAYMT,HOPERAT}
+      ABAC_RESOURCE_TENANT_SYSTEM: ${ABAC_RESOURCE_TENANT_SYSTEM:-https://linuxforhealth.org/fhir/abac/tenant}
+      ABAC_RESOURCE_ORG_SYSTEM: ${ABAC_RESOURCE_ORG_SYSTEM:-https://linuxforhealth.org/fhir/abac/org}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/fhir-server/api/v4/metadata"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 90s
+
+  keycloak:
+    image: ${SMART_KEYCLOAK_IMAGE:-ghcr.io/drakhilkolli/clinivault-keycloak:latest}
+    pull_policy: always
+    container_name: ${SMART_KEYCLOAK_CONTAINER_NAME:-smart-keycloak-local}
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 2>/dev/null && exit 0 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    depends_on:
+      fhir:
+        condition: service_healthy
+    ports:
+      - "${SMART_KEYCLOAK_HTTP_PORT:-8080}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      SMART_REALM: ${SMART_REALM}
+      FHIR_BASE_URL: ${FHIR_BASE_URL}
+      INTERNAL_FHIR_URL: ${INTERNAL_FHIR_URL}
+      SMART_CLIENT_ID: ${SMART_CLIENT_ID}
+      SMART_CLIENT_REDIRECT_URI: ${SMART_CLIENT_REDIRECT_URI}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${KC_DB_HOST}:${KC_DB_PORT}/${KC_DB_DATABASE}?sslmode=${KC_DB_SSL_MODE}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_DB_SCHEMA: ${KC_DB_SCHEMA}
+    command:
+      - start-dev
+      - --import-realm
+      - --health-enabled=true
+      - --spi-datastore-legacy-allow-migrate-existing-database-to-snapshot=true
+      - --spi-connections-jpa-quarkus-migration-strategy=update
+      - --spi-connections-jpa-quarkus-initialize-empty=true
+
+  # ── Schema init (one-shot): uses the FHIR image itself ────────────────────
+  # The FHIR image includes /opt/fhir-schema-cli.jar. We override the
+  # entrypoint to run the schema migration instead of starting Liberty.
+  # Exits 0 on success; fhir service waits for it.
+  fhir-schema-init:
+    image: ${SMART_FHIR_IMAGE:-ghcr.io/drakhilkolli/clinivault-fhir:latest}
+    pull_policy: always
+    container_name: fhir-schema-init
+    entrypoint: ["/bin/bash", "-c"]
+    depends_on:
+      postgres-fhir:
+        condition: service_healthy
+    environment:
+      FHIR_DB_HOST: ${FHIR_DB_HOST:-postgres-fhir}
+      FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
+      FHIR_DB_NAME: ${FHIR_DB_NAME:-fhirdb}
+      FHIR_DB_SCHEMA: ${FHIR_DB_SCHEMA:-fhirdata}
+      FHIR_DB_USER: ${FHIR_DB_USER:-fhirserver}
+      FHIR_DB_PASS: ${FHIR_DB_PASS:-fhir-dev-password}
+    command:
+      - |
+        printf 'db.host=%s\ndb.port=%s\ndb.database=%s\nuser=%s\npassword=%s\n' \
+          "$$FHIR_DB_HOST" "$$FHIR_DB_PORT" "$$FHIR_DB_NAME" "$$FHIR_DB_USER" "$$FHIR_DB_PASS" \
+          > /tmp/db.properties
+        echo "Running create-schema-fhir '$$FHIR_DB_SCHEMA' ..."
+        java -jar /opt/fhir-schema-cli.jar \
+          --prop-file /tmp/db.properties \
+          --db-type postgresql \
+          --create-schema-fhir "$$FHIR_DB_SCHEMA" 2>&1 || \
+          echo "  (create-schema-fhir: objects may already exist, continuing)"
+        echo "Running update-schema-fhir '$$FHIR_DB_SCHEMA' --force ..."
+        java -jar /opt/fhir-schema-cli.jar \
+          --prop-file /tmp/db.properties \
+          --db-type postgresql \
+          --update-schema-fhir "$$FHIR_DB_SCHEMA" --force
+        echo "Schema init complete."
+
+  # ── Kafka + Zookeeper ─────────────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  # ── Local PostgreSQL (skip if using Supabase: set FHIR_DB_HOST externally) ─
+  postgres-fhir:
+    image: postgres:16-alpine
+    container_name: postgres-fhir
+    environment:
+      POSTGRES_USER: ${FHIR_DB_USER:-fhirserver}
+      POSTGRES_PASSWORD: ${FHIR_DB_PASS:-fhir-dev-password}
+      POSTGRES_DB: ${FHIR_DB_NAME:-fhirdb}
+    volumes:
+      - postgres-fhir-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-fhir-data:

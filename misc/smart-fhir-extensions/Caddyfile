@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Caddyfile – TLS reverse proxy for ClinicalVault (production)
+#
+# Replace {$FHIR_DOMAIN} and {$KC_DOMAIN} with your actual domains, or set
+# FHIR_DOMAIN and KC_DOMAIN environment variables (Caddy supports {$VAR}).
+#
+# Example (set in docker-compose.prod.yml caddy environment):
+#   FHIR_DOMAIN=fhir.clinivault.example.com
+#   KC_DOMAIN=auth.clinivault.example.com
+#
+# Caddy automatically obtains and renews Let's Encrypt certificates.
+# No manual cert management required.
+# ─────────────────────────────────────────────────────────────────────────────
+
+{$FHIR_DOMAIN:fhir.example.com} {
+    reverse_proxy clinivault-fhir:9080 {
+        # Pass real client IP to Liberty
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    # HSTS + security headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+    log {
+        output stdout
+        format json
+    }
+}
+
+{$KC_DOMAIN:auth.example.com} {
+    reverse_proxy clinivault-keycloak:8080 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+    log {
+        output stdout
+        format json
+    }
+}

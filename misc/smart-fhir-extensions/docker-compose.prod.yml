@@ -1,0 +1,150 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ClinicalVault – Production stack (cloud / VPS deployment)
+#
+# Differences from local compose:
+#   • No local PostgreSQL  – relies on Supabase / managed Postgres via env vars
+#   • No local Kafka       – can be replaced with managed broker (MSK/Confluent)
+#     Set KAFKA_BROKERS in .env.prod if you have a managed Kafka; otherwise
+#     Kafka is included here for self-hosted deployments.
+#   • pull_policy: always  – always pull fresh image (no accidental stale cache)
+#   • restart: unless-stopped
+#   • Keycloak runs in production mode (start, not start-dev)
+#   • No ports exposed directly — sit behind a reverse proxy (nginx/Caddy/Traefik)
+#     that terminates TLS.  Uncomment the port lines only for troubleshooting.
+#
+# Required env vars in .env.prod — see clinivault-deploy.yml for the full list.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: clinivault-prod
+
+services:
+  fhir:
+    image: ${SMART_FHIR_IMAGE:-ghcr.io/drakhilkolli/clinivault-fhir:latest}
+    pull_policy: always
+    container_name: clinivault-fhir
+    restart: unless-stopped
+    depends_on:
+      fhir-schema-init:
+        condition: service_completed_successfully
+    # Uncomment to expose directly (without reverse proxy) — dev/staging only:
+    # ports:
+    #   - "9080:9080"
+    expose:
+      - "9080"
+    environment:
+      SMART_CLIENT_ID: ${SMART_CLIENT_ID}
+      FHIR_DB_HOST: ${FHIR_DB_HOST}
+      FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
+      FHIR_DB_NAME: ${FHIR_DB_NAME}
+      FHIR_DB_SCHEMA: ${FHIR_DB_SCHEMA}
+      FHIR_DB_USER: ${FHIR_DB_USER}
+      FHIR_DB_PASS: ${FHIR_DB_PASS}
+      FHIR_DB_SSL_MODE: ${FHIR_DB_SSL_MODE:-require}
+      ABAC_ENABLED: ${ABAC_ENABLED:-false}
+      ABAC_REQUIRE_TENANT: ${ABAC_REQUIRE_TENANT:-false}
+      ABAC_REQUIRE_ORG: ${ABAC_REQUIRE_ORG:-false}
+      ABAC_ALLOWED_PURPOSES: ${ABAC_ALLOWED_PURPOSES:-TREAT,HPAYMT,HOPERAT}
+      ABAC_RESOURCE_TENANT_SYSTEM: ${ABAC_RESOURCE_TENANT_SYSTEM}
+      ABAC_RESOURCE_ORG_SYSTEM: ${ABAC_RESOURCE_ORG_SYSTEM}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/fhir-server/api/v4/metadata"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  keycloak:
+    image: ${SMART_KEYCLOAK_IMAGE:-ghcr.io/drakhilkolli/clinivault-keycloak:latest}
+    pull_policy: always
+    container_name: clinivault-keycloak
+    restart: unless-stopped
+    # Uncomment to expose directly — dev/staging only:
+    # ports:
+    #   - "8080:8080"
+    expose:
+      - "8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      SMART_REALM: ${SMART_REALM}
+      FHIR_BASE_URL: ${FHIR_BASE_URL}
+      INTERNAL_FHIR_URL: ${INTERNAL_FHIR_URL}
+      SMART_CLIENT_ID: ${SMART_CLIENT_ID}
+      SMART_CLIENT_REDIRECT_URI: ${SMART_CLIENT_REDIRECT_URI}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${KC_DB_HOST}:${KC_DB_PORT:-5432}/${KC_DB_DATABASE}?sslmode=${KC_DB_SSL_MODE:-require}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_DB_SCHEMA: ${KC_DB_SCHEMA}
+      # TLS termination is handled by the reverse proxy.
+      # KC_PROXY_HEADERS=xforwarded tells Keycloak to trust X-Forwarded-For/Proto headers.
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 2>/dev/null && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 120s
+    command:
+      - start
+      - --optimized
+      - --import-realm
+      - --health-enabled=true
+      - --spi-connections-jpa-quarkus-migration-strategy=update
+
+  # ── One-shot schema migration (exits after completion) ────────────────────
+  fhir-schema-init:
+    image: ${SMART_FHIR_IMAGE:-ghcr.io/drakhilkolli/clinivault-fhir:latest}
+    pull_policy: always
+    container_name: fhir-schema-init
+    restart: "no"
+    entrypoint: ["/bin/bash", "-c"]
+    environment:
+      FHIR_DB_HOST: ${FHIR_DB_HOST}
+      FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
+      FHIR_DB_NAME: ${FHIR_DB_NAME}
+      FHIR_DB_SCHEMA: ${FHIR_DB_SCHEMA}
+      FHIR_DB_USER: ${FHIR_DB_USER}
+      FHIR_DB_PASS: ${FHIR_DB_PASS}
+    command:
+      - |
+        printf 'db.host=%s\ndb.port=%s\ndb.database=%s\nuser=%s\npassword=%s\n' \
+          "$$FHIR_DB_HOST" "$$FHIR_DB_PORT" "$$FHIR_DB_NAME" "$$FHIR_DB_USER" "$$FHIR_DB_PASS" \
+          > /tmp/db.properties
+        echo "Running create-schema-fhir '$$FHIR_DB_SCHEMA' ..."
+        java -jar /opt/fhir-schema-cli.jar \
+          --prop-file /tmp/db.properties \
+          --db-type postgresql \
+          --create-schema-fhir "$$FHIR_DB_SCHEMA" 2>&1 || \
+          echo "  (create-schema-fhir: objects may already exist, continuing)"
+        echo "Running update-schema-fhir '$$FHIR_DB_SCHEMA' --force ..."
+        java -jar /opt/fhir-schema-cli.jar \
+          --prop-file /tmp/db.properties \
+          --db-type postgresql \
+          --update-schema-fhir "$$FHIR_DB_SCHEMA" --force
+        echo "Schema migration complete."
+
+  # ── Reverse proxy (Caddy – auto TLS via Let's Encrypt) ────────────────────
+  # Replace FHIR_DOMAIN / KC_DOMAIN in .env.prod or remove this block if you
+  # use an external LB (AWS ALB, GCP GLB, Cloudflare Tunnel, etc.)
+  caddy:
+    image: caddy:2-alpine
+    container_name: clinivault-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      fhir:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+volumes:
+  caddy-data:
+  caddy-config:
