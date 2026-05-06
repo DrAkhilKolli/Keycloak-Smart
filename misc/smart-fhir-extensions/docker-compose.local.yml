@@ -3,6 +3,7 @@ name: smart-fhir-local
 services:
   fhir:
     image: ${SMART_FHIR_IMAGE:-fhir-server-local:dev}
+    pull_policy: never   # always use the locally-built image; never pull upstream
     build:
       context: ../../../fhir-server
       dockerfile: Dockerfile
@@ -117,16 +118,18 @@ services:
       retries: 10
 
   # ── One-shot schema initializer ───────────────────────────────────────────
-  # Runs the fhir-persistence-schema CLI to create/migrate the FHIR tables.
+  # Uses the same locally-built FHIR image (which has /opt/fhir-schema-cli.jar
+  # baked in via the Dockerfile) with an overridden entrypoint.
+  # No upstream base image needed; no host volume mount of the CLI jar.
   # The container exits 0 on success; the fhir service waits for it.
   fhir-schema-init:
-    image: eclipse-temurin:11-jre-jammy
+    image: ${SMART_FHIR_IMAGE:-fhir-server-local:dev}
+    pull_policy: never   # same locally-built image as the fhir service
     container_name: fhir-schema-init
+    entrypoint: ["/bin/bash", "-c"]
     depends_on:
       postgres-fhir:
         condition: service_healthy
-    volumes:
-      - ../../../fhir-server/fhir-persistence-schema/target/fhir-persistence-schema-5.0.0-SNAPSHOT-cli.jar:/opt/fhir-schema-cli.jar:ro
     environment:
       FHIR_DB_HOST: ${FHIR_DB_HOST:-postgres-fhir}
       FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
@@ -135,17 +138,12 @@ services:
       FHIR_DB_USER: ${FHIR_DB_USER:-fhirserver}
       FHIR_DB_PASS: ${FHIR_DB_PASS:-fhir-dev-password}
     command:
-      - bash
-      - -c
       - |
         printf 'db.host=%s\ndb.port=%s\ndb.database=%s\nuser=%s\npassword=%s\n' \
           "$$FHIR_DB_HOST" "$$FHIR_DB_PORT" "$$FHIR_DB_NAME" "$$FHIR_DB_USER" "$$FHIR_DB_PASS" \
           > /tmp/db.properties
 
         # ── Step 1: Create schema (idempotent) ────────────────────────────────
-        # --create-schema-fhir issues CREATE SCHEMA IF NOT EXISTS for schema
-        # namespaces.  On first run it creates everything; on subsequent runs
-        # duplicate-object errors are harmless — we capture them and continue.
         echo "Running --create-schema-fhir '$$FHIR_DB_SCHEMA' on $$FHIR_DB_HOST:$$FHIR_DB_PORT/$$FHIR_DB_NAME ..."
         java -jar /opt/fhir-schema-cli.jar \
           --prop-file /tmp/db.properties \
@@ -154,8 +152,6 @@ services:
           echo "  (create-schema-fhir exited non-zero — objects may already exist, continuing)"
 
         # ── Step 2: Apply pending migrations (idempotent) ────────────────────
-        # --force bypasses the version-equality check so this is always safe
-        # to run regardless of whether the schema was just created or existed.
         echo "Running --update-schema-fhir '$$FHIR_DB_SCHEMA' --force ..."
         java -jar /opt/fhir-schema-cli.jar \
           --prop-file /tmp/db.properties \
