@@ -38,7 +38,6 @@ import org.keycloak.utils.StringUtil;
 
 import io.quarkus.arc.Arc;
 import io.quarkus.runtime.Quarkus;
-import io.quarkus.runtime.ShutdownDelayInitiatedEvent;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.common.annotation.Blocking;
@@ -76,10 +75,6 @@ public class QuarkusKeycloakApplication extends KeycloakApplication {
 
     void onShutdownEvent(@Observes ShutdownEvent event) {
         shutdown();
-    }
-
-    void onShutdownDelayInitiatedEvent(@Observes ShutdownDelayInitiatedEvent event) {
-        shutdownDelayInitiated();
     }
 
     @Override

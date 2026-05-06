@@ -48,8 +48,8 @@ import org.keycloak.quarkus.runtime.configuration.MicroProfileConfigProvider;
 import org.keycloak.quarkus.runtime.integration.QuarkusKeycloakSessionFactory;
 import org.keycloak.quarkus.runtime.services.RejectNonNormalizedPathFilter;
 import org.keycloak.quarkus.runtime.storage.database.liquibase.FastServiceLocator;
+import org.keycloak.quarkus.runtime.themes.QuarkusThemesRepresentation;
 import org.keycloak.representations.userprofile.config.UPConfig;
-import org.keycloak.theme.ClasspathThemeProviderFactory;
 import org.keycloak.truststore.TruststoreBuilder;
 import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
 
@@ -161,7 +161,7 @@ public class KeycloakRecorder {
             Map<Spi, Map<Class<? extends Provider>, Map<String, Class<? extends ProviderFactory>>>> factories,
             Map<Class<? extends Provider>, String> defaultProviders,
             Map<String, ProviderFactory> preConfiguredProviders,
-            List<ClasspathThemeProviderFactory.ThemesRepresentation> themes) {
+            List<QuarkusThemesRepresentation> themes) {
         return new RuntimeValue<QuarkusKeycloakSessionFactory>(new QuarkusKeycloakSessionFactory(factories, defaultProviders, preConfiguredProviders, themes));
     }
 

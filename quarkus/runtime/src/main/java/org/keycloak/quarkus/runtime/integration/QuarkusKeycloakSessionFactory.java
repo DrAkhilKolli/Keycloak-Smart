@@ -27,8 +27,8 @@ import org.keycloak.provider.Provider;
 import org.keycloak.provider.ProviderFactory;
 import org.keycloak.provider.Spi;
 import org.keycloak.quarkus.runtime.themes.QuarkusJarThemeProviderFactory;
+import org.keycloak.quarkus.runtime.themes.QuarkusThemesRepresentation;
 import org.keycloak.services.DefaultKeycloakSessionFactory;
-import org.keycloak.theme.ClasspathThemeProviderFactory;
 
 public final class QuarkusKeycloakSessionFactory extends DefaultKeycloakSessionFactory {
 
@@ -36,7 +36,7 @@ public final class QuarkusKeycloakSessionFactory extends DefaultKeycloakSessionF
             Map<Spi, Map<Class<? extends Provider>, Map<String, Class<? extends ProviderFactory>>>> factories,
             Map<Class<? extends Provider>, String> defaultProviders,
             Map<String, ProviderFactory> preConfiguredProviders,
-            List<ClasspathThemeProviderFactory.ThemesRepresentation> themes) {
+            List<QuarkusThemesRepresentation> themes) {
         this.provider = defaultProviders;
         spis = factories.keySet();
 

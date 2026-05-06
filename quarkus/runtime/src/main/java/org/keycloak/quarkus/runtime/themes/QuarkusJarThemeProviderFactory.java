@@ -24,9 +24,9 @@ import org.keycloak.theme.JarThemeProviderFactory;
 
 public class QuarkusJarThemeProviderFactory extends JarThemeProviderFactory {
 
-    public void setThemes(List<ThemesRepresentation> themes) {
-        for (ThemesRepresentation theme : themes) {
-            loadThemes(Thread.currentThread().getContextClassLoader(), theme);
+    public void setThemes(List<QuarkusThemesRepresentation> themes) {
+        for (QuarkusThemesRepresentation theme : themes) {
+            loadThemes(Thread.currentThread().getContextClassLoader(), theme.toClasspathThemes());
         }
     }
 

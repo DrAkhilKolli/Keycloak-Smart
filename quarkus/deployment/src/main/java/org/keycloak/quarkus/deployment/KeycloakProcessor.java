@@ -102,6 +102,7 @@ import org.keycloak.quarkus.runtime.services.health.KeycloakClusterReadyHealthCh
 import org.keycloak.quarkus.runtime.services.health.KeycloakReadyHealthCheck;
 import org.keycloak.quarkus.runtime.storage.database.jpa.NamedJpaConnectionProviderFactory;
 import org.keycloak.quarkus.runtime.themes.FlatClasspathThemeResourceProviderFactory;
+import org.keycloak.quarkus.runtime.themes.QuarkusThemesRepresentation;
 import org.keycloak.representations.provider.ScriptProviderDescriptor;
 import org.keycloak.representations.provider.ScriptProviderMetadata;
 import org.keycloak.services.DefaultKeycloakSessionFactory;
@@ -696,13 +697,13 @@ class KeycloakProcessor {
                         loadThemesFromClassPath())).done();
     }
 
-    private List<ClasspathThemeProviderFactory.ThemesRepresentation> loadThemesFromClassPath() {
+    private List<QuarkusThemesRepresentation> loadThemesFromClassPath() {
         try {
-            List<ClasspathThemeProviderFactory.ThemesRepresentation> themes = new ArrayList<>();
+            List<QuarkusThemesRepresentation> themes = new ArrayList<>();
             Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(KEYCLOAK_THEMES_JSON);
 
             while (resources.hasMoreElements()) {
-                themes.add(JsonSerialization.readValue(resources.nextElement().openStream(), ClasspathThemeProviderFactory.ThemesRepresentation.class));
+                themes.add(JsonSerialization.readValue(resources.nextElement().openStream(), QuarkusThemesRepresentation.class));
             }
 
             return themes;

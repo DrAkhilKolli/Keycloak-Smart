@@ -98,6 +98,7 @@ quarkus/data/*.db
 
 .env
 .env.test
+misc/smart-fhir-extensions/.env.smart-keycloak
 
 # Keycloak state dir as suggested in the docs
 # -Dkc.home.dir=.kc

@@ -360,8 +360,8 @@ public class DefaultInfinispanConnectionProviderFactory implements InfinispanCon
     public void onEvent(ProviderEvent event) {
         if (event instanceof PostMigrationEvent pme) {
             KeycloakModelUtils.runJobInTransaction(pme.getFactory(), this::registerSystemWideListeners);
-        } else if (event instanceof ShutdownDelayInitiatedEvent se) {
-            Optional.ofNullable(shutdownManager).ifPresent(sm -> sm.onShutdownStarted(se.timestamp()));
+        } else if (event instanceof ShutdownDelayInitiatedEvent shutdownDelayEvent) {
+            Optional.ofNullable(shutdownManager).ifPresent(sm -> sm.onShutdownStarted(shutdownDelayEvent.timestamp()));
         }
     }
 
