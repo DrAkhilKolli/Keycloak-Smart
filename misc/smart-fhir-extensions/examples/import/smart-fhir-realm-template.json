@@ -2,9 +2,49 @@
   "realm": "${SMART_REALM}",
   "enabled": true,
   "browserFlow": "SMART App Launch",
+  "roles": {
+    "realm": [
+      {
+        "name": "role_patient_app"
+      },
+      {
+        "name": "role_clinician_app"
+      },
+      {
+        "name": "role_backend_service"
+      },
+      {
+        "name": "role_admin_app"
+      }
+    ]
+  },
   "groups": [
     {
       "name": "fhirUser"
+    },
+    {
+      "name": "grp_patient_users",
+      "realmRoles": [
+        "role_patient_app"
+      ]
+    },
+    {
+      "name": "grp_clinicians",
+      "realmRoles": [
+        "role_clinician_app"
+      ]
+    },
+    {
+      "name": "grp_backend_services",
+      "realmRoles": [
+        "role_backend_service"
+      ]
+    },
+    {
+      "name": "grp_admins",
+      "realmRoles": [
+        "role_admin_app"
+      ]
     }
   ],
   "clientScopes": [
@@ -71,19 +111,6 @@
             "id.token.claim": "false",
             "access.token.claim": "false",
             "access.tokenResponse.claim": "true"
-          }
-        },
-        {
-          "name": "Group Membership Mapper",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-group-membership-mapper",
-          "consentRequired": false,
-          "config": {
-            "claim.name": "group",
-            "full.path": "false",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true"
           }
         }
       ]
@@ -175,6 +202,59 @@
           }
         }
       ]
+    },
+    {
+      "name": "abac",
+      "description": "Adds ABAC claims used by fhir-smart authorization (tenant_id, org_id, purpose_of_use)",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "Tenant ID Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenantId",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "Organization ID Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "orgId",
+            "claim.name": "org_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "Purpose Of Use Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "purposeOfUse",
+            "claim.name": "purpose_of_use",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "authenticationFlows": [
@@ -241,6 +321,19 @@
       }
     }
   ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "name": "user-profile",
+        "providerId": "declarative-user-profile",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{}}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}}},{\"name\":\"resourceId\",\"displayName\":\"FHIR Resource ID\",\"validations\":{}},{\"name\":\"fhirResourceType\",\"displayName\":\"FHIR Resource Type\",\"validations\":{}},{\"name\":\"tenantId\",\"displayName\":\"Tenant ID\",\"validations\":{}},{\"name\":\"orgId\",\"displayName\":\"Organization ID\",\"validations\":{}},{\"name\":\"purposeOfUse\",\"displayName\":\"Purpose Of Use\",\"validations\":{}}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
+          ]
+        }
+      }
+    ]
+  },
   "clients": [
     {
       "clientId": "${SMART_CLIENT_ID}",
@@ -254,6 +347,35 @@
       "redirectUris": [
         "${SMART_CLIENT_REDIRECT_URI}"
       ],
+      "protocolMappers": [
+        {
+          "name": "Group Membership Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "Preferred Username Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
       "webOrigins": [
         "+"
       ],
@@ -263,7 +385,8 @@
         "patient/*.read",
         "patient/Patient.read",
         "user/*.read",
-        "user/Practitioner.read"
+        "user/Practitioner.read",
+        "abac"
       ]
     }
   ]

@@ -1,0 +1,6 @@
+services:
+  keycloak:
+    depends_on: []
+    environment:
+      FHIR_BASE_URL: https://localhost:9443/fhir-server/api/v4
+      INTERNAL_FHIR_URL: http://host.docker.internal:9080/fhir-server/api/v4

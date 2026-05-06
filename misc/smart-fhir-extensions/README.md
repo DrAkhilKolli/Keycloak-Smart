@@ -10,12 +10,13 @@ The following old components now live in this module:
 | --- | --- |
 | `AudienceValidator` | Ported as authenticator `audience-validator` |
 | `PatientSelectionForm` | Ported as authenticator `auth-select-patient` |
-| `PatientPrefixUserAttributeMapper` | Ported as protocol mapper `oidc-patient-prefix-usermodel-attribute-mapper` |
+| `PatientPrefixUserAttributeMapper` | Retained as compatibility mapper `oidc-patient-prefix-usermodel-attribute-mapper`; the bundled realm template now uses `oidc-fhir-user-claim-mapper` |
 | `UserAttributeMapper` | Ported as protocol mapper `oidc-usermodel-attribute-mapper-with-token-response-support` |
 
 ## What changed from the old project
 
 - The old `jboss-fhir-provider` module is not needed anymore. Current Keycloak is Quarkus-based, so this module talks to the FHIR server directly over HTTP and parses FHIR JSON without WildFly/JBoss module packaging.
+- The old fixed `Patient/` prefix mapper is still available for compatibility, but the included realm-import template uses `oidc-fhir-user-claim-mapper` so `fhirUser` can resolve `Patient`, `Practitioner`, `RelatedPerson`, or any other FHIR resource type from user attributes.
 - The old custom `UserAttributeMapper` is kept for compatibility, but the patient launch-context response mapping can now use the built-in `oidc-usersessionmodel-note-mapper` because current Keycloak already supports `access.tokenResponse.claim` there.
 - The old `keycloak-config` Java bootstrap client was not copied into this repo. Instead, this module now ships a startup realm-import template under `examples/import/` and a replacement container build path via `misc/smart-fhir-extensions/Dockerfile`.
 
@@ -29,47 +30,104 @@ From the `keycloak-main` root:
 
 The compiled provider JAR is produced under `misc/smart-fhir-extensions/target/`.
 
-## Build a replacement container image
+To build the local Keycloak server distribution from your forked `keycloak-main` code:
+
+```bash
+./mvnw -pl '!js,quarkus/deployment,quarkus/dist' -am -DskipTests package
+```
+
+That produces the server tarball under `quarkus/dist/target/`.
+
+## Managed local runtime
+
+Use the checked-in controller script instead of calling `docker compose` directly:
+
+```bash
+cp misc/smart-fhir-extensions/.env.smart-keycloak.example misc/smart-fhir-extensions/.env.smart-keycloak
+./misc/smart-fhir-extensions/smart-keycloak.sh set-session-conn 'postgres://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require'
+./misc/smart-fhir-extensions/smart-keycloak.sh up
+```
+
+That workflow:
+
+1. creates the `keycloak` schema in Supabase when needed
+2. builds the local Keycloak distribution from your `keycloak-main` source tree
+3. builds the SMART provider JAR from this module
+4. builds the container image from those local artifacts only
+5. starts Keycloak with the configured admin credentials and realm import
+
+If the target Supabase schema was previously migrated by a released Keycloak version, the managed compose stack also passes `--spi-datastore-legacy-allow-migrate-existing-database-to-snapshot=true` so the local `999.0.0-SNAPSHOT` build can start against that existing schema during development.
+
+The managed runtime also uses `--spi-connections-jpa-quarkus-migration-strategy=validate` and `--spi-connections-jpa-quarkus-initialize-empty=false` so an existing Supabase-backed schema is treated as authoritative instead of being re-migrated on every local startup.
+
+The script also supports:
+
+```bash
+./misc/smart-fhir-extensions/smart-keycloak.sh set-session-conn 'postgres://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require'
+./misc/smart-fhir-extensions/smart-keycloak.sh init-db
+./misc/smart-fhir-extensions/smart-keycloak.sh up
+./misc/smart-fhir-extensions/smart-keycloak.sh down
+./misc/smart-fhir-extensions/smart-keycloak.sh logs
+./misc/smart-fhir-extensions/smart-keycloak.sh push-image
+```
+
+`push-image` publishes whatever tag is configured in `.env.smart-keycloak`, so you can point `SMART_KEYCLOAK_IMAGE` at a private registry such as GHCR or an internal container registry.
+
+Use the direct Supabase Postgres endpoint on port `5432` when your environment supports IPv6. If Docker Desktop cannot resolve `db.<project-ref>.supabase.co`, switch to the Supavisor session-mode host from the Supabase dashboard, still on port `5432`, and change the database username to the pooled form `postgres.<project-ref>`. `smart-keycloak.sh set-session-conn 'postgres://...'` will rewrite `.env.smart-keycloak` for you. Do not use the `6543` transaction-pooler endpoint for Keycloak.
+
+## Build a replacement container image manually
 
 From the `keycloak-main` root:
 
 ```bash
+./mvnw -pl quarkus/deployment,quarkus/dist -am -DskipTests package
+./mvnw -pl '!js,misc/smart-fhir-extensions' -am -DskipTests package
 docker build . \
   -f misc/smart-fhir-extensions/Dockerfile \
-  --build-arg KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:latest \
-  -t smart-keycloak
+  -t smart-keycloak-local:dev
 ```
 
-This replaces the old `alvearie/smart-keycloak` image path. The image includes:
+This image is built from the local `keycloak-main` distribution and the local SMART provider JAR. It does not use the published upstream `quay.io/keycloak/keycloak` runtime image.
+
+The image includes:
 
 1. the SMART-on-FHIR provider JAR under `/opt/keycloak/providers/`
-2. a startup import template at `/opt/keycloak/data/import/smart-fhir-realm-template.json`
+2. your locally built Keycloak server distribution from `quarkus/dist/target/`
+3. a startup import template at `/opt/keycloak/data/import/smart-fhir-realm-template.json`
 
 To use the included template at startup:
 
 ```bash
 docker run --rm -p 8080:8080 \
-  -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-  -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+  -e KC_BOOTSTRAP_ADMIN_USERNAME=test_admin@healthcare \
+  -e KC_BOOTSTRAP_ADMIN_PASSWORD=change-me \
   -e SMART_REALM=test \
   -e FHIR_BASE_URL=https://fhir.example.com/fhir \
   -e INTERNAL_FHIR_URL=http://fhir.internal/fhir \
   -e SMART_CLIENT_ID=smart-launch-client \
   -e SMART_CLIENT_REDIRECT_URI=http://localhost:3000/* \
+  -e KC_DB=postgres \
+  -e KC_DB_URL='jdbc:postgresql://db.example.supabase.co:5432/postgres?sslmode=require' \
+  -e KC_DB_USERNAME=postgres \
+  -e KC_DB_PASSWORD=change-me \
+  -e KC_DB_SCHEMA=keycloak \
   smart-keycloak start-dev --import-realm
 ```
 
 ## Local Docker Compose deployment
 
-Use the concrete local stack at `docker-compose.local.yml` when you want Keycloak and a local FHIR server together:
+Use `smart-keycloak.sh up` for the concrete local stack. If you need the raw Compose command, it is:
 
 ```bash
-docker compose -f misc/smart-fhir-extensions/docker-compose.local.yml up --build
+docker compose \
+  --env-file misc/smart-fhir-extensions/.env.smart-keycloak \
+  -f misc/smart-fhir-extensions/docker-compose.local.yml \
+  up --build
 ```
 
 That stack:
 
-1. builds the SMART-enabled Keycloak image from this repository
+1. builds the SMART-enabled Keycloak image from this repository's local distribution artifacts
 2. starts a local HAPI FHIR server on `http://localhost:8081/fhir`
 3. starts Keycloak on `http://localhost:8080`
 4. imports `examples/import/smart-fhir-realm-template.json` on startup using concrete local values
@@ -90,18 +148,25 @@ For automated bootstrap, use the import template at `examples/import/smart-fhir-
 
 #### `fhirUser`
 
-Create an OIDC client scope named `fhirUser` and attach mapper `oidc-patient-prefix-usermodel-attribute-mapper` with configuration similar to:
+Create an OIDC client scope named `fhirUser` and attach mapper `oidc-fhir-user-claim-mapper` with configuration similar to the bundled realm template:
 
 ```json
 {
-  "user.attribute": "resourceId",
-  "claim.name": "fhirUser",
-  "jsonType.label": "String",
-  "id.token.claim": "true",
-  "access.token.claim": "false",
-  "userinfo.token.claim": "true"
+  "protocolMapper": "oidc-fhir-user-claim-mapper",
+  "config": {
+    "resourceIdAttribute": "resourceId",
+    "resourceTypeAttribute": "fhirResourceType",
+    "defaultResourceType": "Patient",
+    "claim.name": "fhirUser",
+    "jsonType.label": "String",
+    "id.token.claim": "true",
+    "access.token.claim": "true",
+    "userinfo.token.claim": "true"
+  }
 }
 ```
+
+This is the mapper used by `examples/import/smart-fhir-realm-template.json` and it supports both patient-facing and EHR-user identities without per-user mapper changes.
 
 #### `launch/patient`
 
@@ -138,6 +203,27 @@ Create an OIDC client scope named `launch/patient` and attach:
   }
 }
 ```
+
+#### `abac`
+
+The bundled realm template also defines an optional scope named `abac` for attribute-based policy context. It maps these user attributes into access-token claims:
+
+1. `tenantId` -> `tenant_id`
+2. `orgId` -> `org_id`
+3. `purposeOfUse` -> `purpose_of_use`
+
+Assign this scope to SMART clients that must pass ABAC context to the FHIR server. The template adds `abac` to the default `optionalClientScopes` list for `SMART_CLIENT_ID`.
+
+To populate the claims, set user attributes on the authenticating Keycloak user:
+
+1. `tenantId`
+2. `orgId`
+3. `purposeOfUse`
+
+These claims align with ABAC checks in `fhir-server/fhir-smart` and the default FHIR resource label systems:
+
+1. `https://linuxforhealth.org/fhir/abac/tenant`
+2. `https://linuxforhealth.org/fhir/abac/org`
 
 ### Required authentication flow
 
@@ -180,10 +266,11 @@ Those endpoints are enough to recreate the old SMART bootstrap behavior with cur
 
 These files replace the operational parts of the retired repo:
 
-1. `misc/smart-fhir-extensions/Dockerfile` replaces the old legacy `smart-keycloak` image packaging.
+1. `misc/smart-fhir-extensions/Dockerfile` replaces the old legacy `smart-keycloak` image packaging and now consumes the local `keycloak-main` distribution build.
 2. `misc/smart-fhir-extensions/examples/import/smart-fhir-realm-template.json` replaces the old `keycloak-config` JSON-driven bootstrap path for baseline SMART-on-FHIR realm setup.
 3. `misc/smart-fhir-extensions/docker-compose.local.yml` provides a concrete local Keycloak + FHIR runtime.
-4. `misc/smart-fhir-extensions/LOCAL_DEPLOYMENT_FOR_LLM.md` documents the exact local integration workflow for humans or LLM-driven automation.
+4. `misc/smart-fhir-extensions/smart-keycloak.sh` is the supported entry point for schema init, local image build, compose up/down, and optional image publishing.
+5. `misc/smart-fhir-extensions/LOCAL_DEPLOYMENT_FOR_LLM.md` documents the exact local integration workflow for humans or LLM-driven automation.
 
 ## Notes for FHIR deployments
 

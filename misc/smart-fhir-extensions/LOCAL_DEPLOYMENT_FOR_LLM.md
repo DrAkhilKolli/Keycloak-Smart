@@ -140,6 +140,29 @@ docker exec smart-keycloak-local /opt/keycloak/bin/kcadm.sh set-password \
 
 This user will trigger the patient picker because it has two `resourceId` values.
 
+## ABAC quick setup (optional)
+
+The bundled realm import now includes an `abac` optional client scope that emits:
+
+- `tenant_id` from Keycloak user attribute `tenantId`
+- `org_id` from Keycloak user attribute `orgId`
+- `purpose_of_use` from Keycloak user attribute `purposeOfUse`
+
+Set those attributes on a test user:
+
+```bash
+docker exec smart-keycloak-local /opt/keycloak/bin/kcadm.sh update users/$(docker exec smart-keycloak-local /opt/keycloak/bin/kcadm.sh get users -r smart -q username=smart-user --fields id --format csv | tail -n 1 | tr -d '\r') \
+  -r smart \
+  -s 'attributes.tenantId=["tenant-a"]' \
+  -s 'attributes.orgId=["org-123"]' \
+  -s 'attributes.purposeOfUse=["TREAT"]'
+```
+
+When enabling ABAC in the FHIR server config, keep these default label systems aligned:
+
+- `https://linuxforhealth.org/fhir/abac/tenant`
+- `https://linuxforhealth.org/fhir/abac/org`
+
 ## SMART request example
 
 When integrating a local SMART app, send the authorization request to the imported `smart` realm and include:
@@ -185,6 +208,39 @@ When an LLM is asked to run this stack locally, it should:
 4. Assume the default SMART client id is `smart-launch-client`.
 5. Change `SMART_CLIENT_REDIRECT_URI` in the compose file if the local SMART app is not on `http://localhost:3000/*`.
 6. Create matching FHIR Patient ids and Keycloak `resourceId` attributes before testing patient launch behavior.
+
+## Token verification
+
+After a successful SMART login, verify that ABAC claims are present in the issued access token. Use the Keycloak token endpoint to obtain a token directly (password grant, for local testing only):
+
+```bash
+TOKEN=$(curl -s -X POST \
+  "http://localhost:8080/realms/smart/protocol/openid-connect/token" \
+  -d "grant_type=password" \
+  -d "client_id=smart-launch-client" \
+  -d "username=smart-user" \
+  -d "password=password" \
+  -d "scope=openid launch/patient patient/Patient.read abac" \
+  | jq -r '.access_token')
+echo "$TOKEN" | cut -d'.' -f2 | base64 -d 2>/dev/null | jq '{tenant_id, org_id, purpose_of_use, patient_id}'
+```
+
+Expected output (after setting ABAC user attributes):
+
+```json
+{
+  "tenant_id": "tenant-a",
+  "org_id": "org-123",
+  "purpose_of_use": "TREAT",
+  "patient_id": "demo-patient-1"
+}
+```
+
+If `tenant_id`, `org_id`, or `purpose_of_use` are missing:
+
+1. Confirm the `abac` scope is listed under `optionalClientScopes` on the client in Keycloak.
+2. Confirm `abac` was included in the `scope` parameter of the token request.
+3. Confirm the user has `tenantId`, `orgId`, `purposeOfUse` attributes set (see **ABAC quick setup** above).
 
 ## When integrating a different local FHIR server
 

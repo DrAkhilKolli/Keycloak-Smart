@@ -4,7 +4,7 @@
 set -eu
 
 TEMPLATE=/opt/keycloak/data/import-templates/smart-fhir-realm-template.json
-OUTPUT=/opt/keycloak/data/import/smart-fhir-realm.json
+OUTPUT=/opt/keycloak/data/import/smart-realm.json
 
 mkdir -p /opt/keycloak/data/import
 envsubst < "$TEMPLATE" > "$OUTPUT"

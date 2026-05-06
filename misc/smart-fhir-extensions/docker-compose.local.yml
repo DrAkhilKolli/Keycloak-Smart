@@ -2,33 +2,167 @@ name: smart-fhir-local
 
 services:
   fhir:
-    image: hapiproject/hapi:latest
-    container_name: smart-fhir-hapi-local
+    image: ${SMART_FHIR_IMAGE:-fhir-server-local:dev}
+    build:
+      context: ../../../fhir-server
+      dockerfile: Dockerfile
+    container_name: ${SMART_FHIR_CONTAINER_NAME:-smart-fhir-local}
+    depends_on:
+      kafka:
+        condition: service_started
+      fhir-schema-init:
+        condition: service_completed_successfully
     ports:
-      - "8081:8080"
+      - "${SMART_FHIR_HTTP_PORT:-8081}:9080"
     environment:
-      hapi.fhir.cors.enabled: "true"
-      hapi.fhir.cors.allowed_origin: "*"
+      SMART_CLIENT_ID: ${SMART_CLIENT_ID}
+      FHIR_DB_HOST: ${FHIR_DB_HOST:-postgres-fhir}
+      FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
+      FHIR_DB_NAME: ${FHIR_DB_NAME:-fhirdb}
+      FHIR_DB_SCHEMA: ${FHIR_DB_SCHEMA:-fhirdata}
+      FHIR_DB_USER: ${FHIR_DB_USER:-fhirserver}
+      FHIR_DB_PASS: ${FHIR_DB_PASS:-fhir-dev-password}
+      FHIR_DB_SSL_MODE: ${FHIR_DB_SSL_MODE:-disable}
+      # ABAC – set in .env.smart-keycloak; defaults keep enforcement off locally.
+      ABAC_ENABLED: ${ABAC_ENABLED:-false}
+      ABAC_REQUIRE_TENANT: ${ABAC_REQUIRE_TENANT:-false}
+      ABAC_REQUIRE_ORG: ${ABAC_REQUIRE_ORG:-false}
+      ABAC_ALLOWED_PURPOSES: ${ABAC_ALLOWED_PURPOSES:-TREAT,HPAYMT,HOPERAT}
+      ABAC_RESOURCE_TENANT_SYSTEM: ${ABAC_RESOURCE_TENANT_SYSTEM:-https://linuxforhealth.org/fhir/abac/tenant}
+      ABAC_RESOURCE_ORG_SYSTEM: ${ABAC_RESOURCE_ORG_SYSTEM:-https://linuxforhealth.org/fhir/abac/org}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/fhir-server/api/v4/metadata"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
 
   keycloak:
+    image: ${SMART_KEYCLOAK_IMAGE:-smart-keycloak-local:dev}
+    pull_policy: never
     build:
       context: ../..
       dockerfile: misc/smart-fhir-extensions/Dockerfile
-      args:
-        KEYCLOAK_IMAGE: quay.io/keycloak/keycloak:latest
-    container_name: smart-keycloak-local
+    container_name: ${SMART_KEYCLOAK_CONTAINER_NAME:-smart-keycloak-local}
+    healthcheck:
+      # curl is not available in the Keycloak UBI-minimal image; use bash /dev/tcp
+      # to check the management port (9000) where --health-enabled=true exposes /health/ready
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 2>/dev/null && exit 0 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
     depends_on:
-      - fhir
+      fhir:
+        condition: service_healthy
     ports:
-      - "8080:8080"
+      - "${SMART_KEYCLOAK_HTTP_PORT:-8080}:8080"
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      SMART_REALM: smart
-      FHIR_BASE_URL: http://localhost:8081/fhir
-      INTERNAL_FHIR_URL: http://fhir:8080/fhir
-      SMART_CLIENT_ID: smart-launch-client
-      SMART_CLIENT_REDIRECT_URI: http://localhost:3000/*
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      SMART_REALM: ${SMART_REALM}
+      FHIR_BASE_URL: ${FHIR_BASE_URL}
+      INTERNAL_FHIR_URL: ${INTERNAL_FHIR_URL}
+      SMART_CLIENT_ID: ${SMART_CLIENT_ID}
+      SMART_CLIENT_REDIRECT_URI: ${SMART_CLIENT_REDIRECT_URI}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${KC_DB_HOST}:${KC_DB_PORT}/${KC_DB_DATABASE}?sslmode=${KC_DB_SSL_MODE}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_DB_SCHEMA: ${KC_DB_SCHEMA}
     command:
       - start-dev
       - --import-realm
+      - --health-enabled=true
+      - --spi-datastore-legacy-allow-migrate-existing-database-to-snapshot=true
+      - --spi-connections-jpa-quarkus-migration-strategy=update
+      - --spi-connections-jpa-quarkus-initialize-empty=true
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  # ── Local FHIR database (PostgreSQL) ─────────────────────────────────────
+  # Used for local/dev testing. Override FHIR_DB_* in .env to point at Supabase.
+  postgres-fhir:
+    image: postgres:16-alpine
+    container_name: postgres-fhir
+    environment:
+      POSTGRES_USER: ${FHIR_DB_USER:-fhirserver}
+      POSTGRES_PASSWORD: ${FHIR_DB_PASS:-fhir-dev-password}
+      POSTGRES_DB: ${FHIR_DB_NAME:-fhirdb}
+    volumes:
+      - postgres-fhir-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── One-shot schema initializer ───────────────────────────────────────────
+  # Runs the fhir-persistence-schema CLI to create/migrate the FHIR tables.
+  # The container exits 0 on success; the fhir service waits for it.
+  fhir-schema-init:
+    image: eclipse-temurin:11-jre-jammy
+    container_name: fhir-schema-init
+    depends_on:
+      postgres-fhir:
+        condition: service_healthy
+    volumes:
+      - ../../../fhir-server/fhir-persistence-schema/target/fhir-persistence-schema-5.0.0-SNAPSHOT-cli.jar:/opt/fhir-schema-cli.jar:ro
+    environment:
+      FHIR_DB_HOST: ${FHIR_DB_HOST:-postgres-fhir}
+      FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
+      FHIR_DB_NAME: ${FHIR_DB_NAME:-fhirdb}
+      FHIR_DB_SCHEMA: ${FHIR_DB_SCHEMA:-fhirdata}
+      FHIR_DB_USER: ${FHIR_DB_USER:-fhirserver}
+      FHIR_DB_PASS: ${FHIR_DB_PASS:-fhir-dev-password}
+    command:
+      - bash
+      - -c
+      - |
+        printf 'db.host=%s\ndb.port=%s\ndb.database=%s\nuser=%s\npassword=%s\n' \
+          "$$FHIR_DB_HOST" "$$FHIR_DB_PORT" "$$FHIR_DB_NAME" "$$FHIR_DB_USER" "$$FHIR_DB_PASS" \
+          > /tmp/db.properties
+
+        # ── Step 1: Create schema (idempotent) ────────────────────────────────
+        # --create-schema-fhir issues CREATE SCHEMA IF NOT EXISTS for schema
+        # namespaces.  On first run it creates everything; on subsequent runs
+        # duplicate-object errors are harmless — we capture them and continue.
+        echo "Running --create-schema-fhir '$$FHIR_DB_SCHEMA' on $$FHIR_DB_HOST:$$FHIR_DB_PORT/$$FHIR_DB_NAME ..."
+        java -jar /opt/fhir-schema-cli.jar \
+          --prop-file /tmp/db.properties \
+          --db-type postgresql \
+          --create-schema-fhir "$$FHIR_DB_SCHEMA" 2>&1 || \
+          echo "  (create-schema-fhir exited non-zero — objects may already exist, continuing)"
+
+        # ── Step 2: Apply pending migrations (idempotent) ────────────────────
+        # --force bypasses the version-equality check so this is always safe
+        # to run regardless of whether the schema was just created or existed.
+        echo "Running --update-schema-fhir '$$FHIR_DB_SCHEMA' --force ..."
+        java -jar /opt/fhir-schema-cli.jar \
+          --prop-file /tmp/db.properties \
+          --db-type postgresql \
+          --update-schema-fhir "$$FHIR_DB_SCHEMA" \
+          --force
+        echo "✓ Schema initialisation/migration complete."
+
+volumes:
+  postgres-fhir-data:
