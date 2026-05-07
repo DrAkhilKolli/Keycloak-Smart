@@ -10,9 +10,11 @@ mkdir -p /opt/keycloak/data/import
 envsubst < "$TEMPLATE" > "$OUTPUT"
 
 # The image was pre-built with `kc.sh build` in the Dockerfile, so we must
-# invoke `start --optimized` at runtime.  All subsequent set -- calls append
-# runtime-only flags to this base.
-set -- start --optimized
+# invoke `start --optimized` at runtime.  If Docker CMD provides args (e.g.
+# --import-realm), preserve them; otherwise default to "start --optimized".
+if [ $# -eq 0 ]; then
+  set -- start --optimized
+fi
 
 # Ensure runtime DB credentials are passed explicitly in production.
 if [ -n "${KC_DB_URL:-}" ]; then
