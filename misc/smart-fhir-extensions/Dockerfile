@@ -33,6 +33,10 @@ COPY --chown=1000:0 misc/smart-fhir-extensions/start.sh /opt/keycloak/bin/start-
 USER 1000
 
 RUN chmod +x /opt/keycloak/bin/start-smart-keycloak.sh && \
-    /opt/keycloak/bin/kc.sh build --db=postgres
+    /opt/keycloak/bin/kc.sh build \
+      --db=postgres \
+      --health-enabled=true \
+      --metrics-enabled=true \
+      --http-management-health-enabled=false
 
 ENTRYPOINT ["/opt/keycloak/bin/start-smart-keycloak.sh"]
