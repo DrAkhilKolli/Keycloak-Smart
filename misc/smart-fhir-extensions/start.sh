@@ -9,6 +9,11 @@ OUTPUT=/opt/keycloak/data/import/smart-fhir-realm.json
 mkdir -p /opt/keycloak/data/import
 envsubst < "$TEMPLATE" > "$OUTPUT"
 
+# The image was pre-built with `kc.sh build` in the Dockerfile, so we must
+# invoke `start --optimized` at runtime.  All subsequent set -- calls append
+# runtime-only flags to this base.
+set -- start --optimized
+
 # Ensure runtime DB credentials are passed explicitly in production.
 if [ -n "${KC_DB_URL:-}" ]; then
   set -- "$@" "--db-url=${KC_DB_URL}"
