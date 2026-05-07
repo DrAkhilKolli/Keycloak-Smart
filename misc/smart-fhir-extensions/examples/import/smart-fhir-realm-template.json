@@ -2,6 +2,7 @@
   "realm": "${SMART_REALM}",
   "enabled": true,
   "browserFlow": "SMART App Launch",
+  "frontendUrl": "${KC_HOSTNAME}",
   "roles": {
     "realm": [
       {
@@ -343,7 +344,7 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "rootUrl": "http://localhost",
+      "rootUrl": "${KC_HOSTNAME}",
       "redirectUris": [
         "${SMART_CLIENT_REDIRECT_URI}"
       ],
