@@ -54,6 +54,6 @@ public class Version {
     }
 
     public static final String NAME = name;
-    public static final String NAME_HTML = "<div class=\"kc-logo-text\"><span>" + name + "</span></div>";
+    public static final String NAME_HTML = "<div class=\"clinivault-logo-text\"><span>Clinivault</span></div>";
 
 }

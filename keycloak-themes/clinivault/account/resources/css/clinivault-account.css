@@ -1,0 +1,180 @@
+/* ================================================================
+   CLINIVAULT ACCOUNT CONSOLE THEME
+   Extends keycloak.v3 (PatternFly v5) with Clinivault brand colours.
+   Brand: #06b6d4 (cyan) → #0055FF (blue)  |  bg: #020617
+   ================================================================ */
+
+:root,
+:root.pf-v5-theme-dark {
+  /* ── Brand tokens ── */
+  --cv-cyan:        #06b6d4;
+  --cv-blue:        #0055FF;
+  --cv-bg:          #020617;
+  --cv-bg-surface:  #0d1625;
+  --cv-border:      rgba(6, 182, 212, 0.15);
+  --cv-text:        #f1f5f9;
+  --cv-text-muted:  #94a3b8;
+
+  /* ── Override PatternFly global colours ── */
+  --pf-v5-global--Color--100:  var(--cv-text) !important;
+  --pf-v5-global--Color--200:  var(--cv-text-muted) !important;
+  --pf-v5-global--link--Color: var(--cv-cyan) !important;
+  --pf-v5-global--link--Color--hover: #67e8f9 !important;
+
+  /* Primary action colour */
+  --pf-v5-global--primary-color--100: var(--cv-cyan) !important;
+  --pf-v5-global--primary-color--200: var(--cv-blue) !important;
+
+  /* ── Masthead ── */
+  --pf-v5-c-masthead--BackgroundColor: #020617 !important;
+
+  /* ── Navigation sidebar ── */
+  --pf-v5-c-nav--BackgroundColor:            #0a1122 !important;
+  --pf-v5-c-nav__link--Color:                var(--cv-text-muted) !important;
+  --pf-v5-c-nav__link--hover--Color:         var(--cv-text) !important;
+  --pf-v5-c-nav__link--m-current--Color:     var(--cv-cyan) !important;
+  --pf-v5-c-nav__link--after--BorderColor:   var(--cv-cyan) !important;
+
+  /* ── Page / body background ── */
+  --pf-v5-c-page--BackgroundColor:              var(--cv-bg) !important;
+  --pf-v5-c-page__main-section--BackgroundColor: #060e1f !important;
+
+  /* ── Cards ── */
+  --pf-v5-c-card--BackgroundColor: rgba(13, 22, 37, 0.85) !important;
+
+  /* ── Buttons ── */
+  --pf-v5-c-button--m-primary--BackgroundColor:       var(--cv-cyan) !important;
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: #0891b2 !important;
+  --pf-v5-c-button--m-primary--Color: #000d1a !important;
+}
+
+/* ── Page background ──────────────────────────────────────── */
+body,
+.pf-v5-c-page {
+  background-color: var(--cv-bg) !important;
+}
+
+/* ── Masthead: dark band with subtle cyan glow on left ─────── */
+.pf-v5-c-masthead {
+  background-color: #020617 !important;
+  border-bottom: 1px solid var(--cv-border) !important;
+  box-shadow: 0 1px 12px rgba(6, 182, 212, 0.08) !important;
+}
+
+/* Brand image sizing — the wordmark is wide, cap to reasonable height */
+.pf-v5-c-masthead .pf-v5-c-brand,
+.pf-v5-c-masthead img[alt="logo"] {
+  height: 28px !important;
+  width: auto !important;
+  max-width: 200px !important;
+}
+
+/* ── Navigation sidebar ────────────────────────────────────── */
+.pf-v5-c-nav {
+  background-color: #0a1122 !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link {
+  color: var(--cv-text-muted) !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link:hover,
+.pf-v5-c-nav__item .pf-v5-c-nav__link:focus {
+  color: var(--cv-text) !important;
+  background-color: rgba(6, 182, 212, 0.06) !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link.pf-m-current {
+  color: var(--cv-cyan) !important;
+  background-color: rgba(6, 182, 212, 0.08) !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link.pf-m-current::after,
+.pf-v5-c-nav__item .pf-v5-c-nav__link:hover::after {
+  border-color: var(--cv-cyan) !important;
+}
+
+/* ── Page sections ─────────────────────────────────────────── */
+.pf-v5-c-page__main-section {
+  background-color: #060e1f !important;
+}
+
+/* ── Cards ─────────────────────────────────────────────────── */
+.pf-v5-c-card {
+  background-color: rgba(13, 22, 37, 0.85) !important;
+  border: 1px solid rgba(6, 182, 212, 0.10) !important;
+  border-radius: 0.75rem !important;
+}
+
+.pf-v5-c-card__header {
+  border-bottom: 1px solid rgba(6, 182, 212, 0.10) !important;
+}
+
+/* ── Primary buttons ───────────────────────────────────────── */
+.pf-v5-c-button.pf-m-primary {
+  background: linear-gradient(135deg, var(--cv-cyan) 0%, var(--cv-blue) 100%) !important;
+  color: #000d1a !important;
+  border: none !important;
+  font-weight: 600 !important;
+  box-shadow: 0 3px 16px rgba(6, 182, 212, 0.25) !important;
+}
+
+.pf-v5-c-button.pf-m-primary:hover {
+  opacity: 0.88 !important;
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.35) !important;
+}
+
+/* ── Links ─────────────────────────────────────────────────── */
+a {
+  color: var(--cv-cyan) !important;
+}
+a:hover {
+  color: #67e8f9 !important;
+}
+
+/* ── Inputs ─────────────────────────────────────────────────── */
+.pf-v5-c-form-control {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: var(--cv-text) !important;
+  border-radius: 0.5rem !important;
+}
+
+.pf-v5-c-form-control:focus-within {
+  border-color: var(--cv-cyan) !important;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3) !important;
+}
+
+/* ── Alerts ─────────────────────────────────────────────────── */
+.pf-v5-c-alert.pf-m-info {
+  background: rgba(6, 182, 212, 0.08) !important;
+  border-color: rgba(6, 182, 212, 0.30) !important;
+}
+
+.pf-v5-c-alert.pf-m-success {
+  background: rgba(16, 185, 129, 0.10) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.pf-v5-c-alert.pf-m-danger {
+  background: rgba(239, 68, 68, 0.10) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+/* ── User dropdown in masthead ─────────────────────────────── */
+.pf-v5-c-masthead .pf-v5-c-dropdown__menu,
+.pf-v5-c-masthead .pf-v5-c-menu {
+  background-color: #0d1625 !important;
+  border: 1px solid var(--cv-border) !important;
+}
+
+/* ── Page title / heading ──────────────────────────────────── */
+.pf-v5-c-title {
+  color: var(--cv-text) !important;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.45); }

@@ -42,8 +42,8 @@ services:
     image: ${SMART_KEYCLOAK_IMAGE:-smart-keycloak-local:dev}
     pull_policy: never
     build:
-      context: ../..
-      dockerfile: misc/smart-fhir-extensions/Dockerfile
+      context: ../../..
+      dockerfile: keycloak-main/misc/smart-fhir-extensions/Dockerfile
     container_name: ${SMART_KEYCLOAK_CONTAINER_NAME:-smart-keycloak-local}
     healthcheck:
       # curl is not available in the Keycloak UBI-minimal image; use bash /dev/tcp

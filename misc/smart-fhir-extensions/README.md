@@ -77,13 +77,13 @@ Use the direct Supabase Postgres endpoint on port `5432` when your environment s
 
 ## Build a replacement container image manually
 
-From the `keycloak-main` root:
+From the repository root:
 
 ```bash
-./mvnw -pl quarkus/deployment,quarkus/dist -am -DskipTests package
-./mvnw -pl '!js,misc/smart-fhir-extensions' -am -DskipTests package
+./keycloak-main/mvnw -f keycloak-main/pom.xml -pl quarkus/deployment,quarkus/dist -am -DskipTests package
+./keycloak-main/mvnw -f keycloak-main/pom.xml -pl '!js,misc/smart-fhir-extensions' -am -DskipTests package
 docker build . \
-  -f misc/smart-fhir-extensions/Dockerfile \
+  -f keycloak-main/misc/smart-fhir-extensions/Dockerfile \
   -t smart-keycloak-local:dev
 ```
 
@@ -94,6 +94,7 @@ The image includes:
 1. the SMART-on-FHIR provider JAR under `/opt/keycloak/providers/`
 2. your locally built Keycloak server distribution from `quarkus/dist/target/`
 3. a startup import template at `/opt/keycloak/data/import/smart-fhir-realm-template.json`
+4. the Clinivault login theme under `/opt/keycloak/themes/clinivault`
 
 To use the included template at startup:
 

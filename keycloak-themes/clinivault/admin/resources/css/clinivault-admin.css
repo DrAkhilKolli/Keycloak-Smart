@@ -1,0 +1,180 @@
+/* ================================================================
+   CLINIVAULT ADMIN CONSOLE THEME
+   Extends keycloak.v2 (PatternFly v5) with Clinivault branding.
+   ================================================================ */
+
+:root,
+:root.pf-v5-theme-dark {
+  --cv-cyan: #06b6d4;
+  --cv-blue: #0055ff;
+  --cv-bg: #020617;
+  --cv-surface: #0d1625;
+  --cv-surface-soft: #111d31;
+  --cv-border: rgba(6, 182, 212, 0.16);
+  --cv-text: #f1f5f9;
+  --cv-text-muted: #94a3b8;
+
+  --pf-v5-global--Color--100: var(--cv-text) !important;
+  --pf-v5-global--Color--200: var(--cv-text-muted) !important;
+  --pf-v5-global--primary-color--100: var(--cv-cyan) !important;
+  --pf-v5-global--primary-color--200: var(--cv-blue) !important;
+  --pf-v5-global--link--Color: var(--cv-cyan) !important;
+  --pf-v5-global--link--Color--hover: #67e8f9 !important;
+}
+
+body,
+.pf-v5-c-page,
+.pf-v5-c-page__main,
+.pf-v5-c-page__main-section {
+  background: radial-gradient(85% 55% at 10% 5%, rgba(6, 182, 212, 0.08), transparent 60%),
+              radial-gradient(70% 45% at 90% 0%, rgba(112, 0, 255, 0.08), transparent 60%),
+              var(--cv-bg) !important;
+  color: var(--cv-text) !important;
+}
+
+.pf-v5-c-masthead {
+  background-color: #020617 !important;
+  border-bottom: 1px solid var(--cv-border) !important;
+  box-shadow: 0 1px 14px rgba(6, 182, 212, 0.1) !important;
+}
+
+.pf-v5-c-masthead .pf-v5-c-brand,
+.pf-v5-c-masthead img[alt="logo"] {
+  height: 28px !important;
+  width: auto !important;
+  max-width: 220px !important;
+}
+
+.pf-v5-c-nav {
+  background-color: #0b1323 !important;
+  border-right: 1px solid rgba(6, 182, 212, 0.08) !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link {
+  color: var(--cv-text-muted) !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link:hover,
+.pf-v5-c-nav__item .pf-v5-c-nav__link:focus {
+  color: var(--cv-text) !important;
+  background-color: rgba(6, 182, 212, 0.08) !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link.pf-m-current {
+  color: var(--cv-cyan) !important;
+  background-color: rgba(6, 182, 212, 0.1) !important;
+}
+
+.pf-v5-c-nav__item .pf-v5-c-nav__link.pf-m-current::after,
+.pf-v5-c-nav__item .pf-v5-c-nav__link:hover::after {
+  border-color: var(--cv-cyan) !important;
+}
+
+.pf-v5-c-card,
+.pf-v5-c-panel,
+.pf-v5-c-description-list,
+.pf-v5-c-drawer__panel {
+  background-color: rgba(13, 22, 37, 0.88) !important;
+  border: 1px solid rgba(6, 182, 212, 0.12) !important;
+  border-radius: 0.75rem !important;
+}
+
+.pf-v5-c-card__header,
+.pf-v5-c-card__title,
+.pf-v5-c-content h1,
+.pf-v5-c-content h2,
+.pf-v5-c-content h3,
+.pf-v5-c-title {
+  color: var(--cv-text) !important;
+}
+
+.pf-v5-c-table,
+.pf-v5-c-table thead,
+.pf-v5-c-table tbody,
+.pf-v5-c-table tr,
+.pf-v5-c-table th,
+.pf-v5-c-table td {
+  background-color: transparent !important;
+  color: var(--cv-text) !important;
+  border-color: rgba(6, 182, 212, 0.1) !important;
+}
+
+.pf-v5-c-table tr:hover {
+  background-color: rgba(6, 182, 212, 0.06) !important;
+}
+
+.pf-v5-c-form-control,
+.pf-v5-c-form-select,
+.pf-v5-c-input-group .pf-v5-c-form-control {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: var(--cv-text) !important;
+  border-radius: 0.5rem !important;
+}
+
+.pf-v5-c-form-control:focus,
+.pf-v5-c-form-select:focus {
+  border-color: var(--cv-cyan) !important;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3) !important;
+}
+
+.pf-v5-c-button.pf-m-primary {
+  background: linear-gradient(135deg, var(--cv-cyan), var(--cv-blue)) !important;
+  color: #001323 !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3) !important;
+}
+
+.pf-v5-c-button.pf-m-primary:hover {
+  opacity: 0.88 !important;
+  box-shadow: 0 6px 22px rgba(6, 182, 212, 0.4) !important;
+}
+
+.pf-v5-c-button.pf-m-secondary,
+.pf-v5-c-button.pf-m-link {
+  color: var(--cv-cyan) !important;
+}
+
+.pf-v5-c-alert.pf-m-info {
+  background: rgba(6, 182, 212, 0.08) !important;
+  border-color: rgba(6, 182, 212, 0.32) !important;
+}
+
+.pf-v5-c-alert.pf-m-success {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.pf-v5-c-alert.pf-m-danger {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+a,
+.pf-v5-c-content a {
+  color: var(--cv-cyan) !important;
+}
+
+a:hover,
+.pf-v5-c-content a:hover {
+  color: #67e8f9 !important;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.28);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.45);
+}
