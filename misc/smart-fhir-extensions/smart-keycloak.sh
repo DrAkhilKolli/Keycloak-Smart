@@ -267,8 +267,8 @@ build_js() {
     local module_dir="$js_dir/$module"
     local artifact_id
     artifact_id=$(
-      grep -m1 '<artifactId>' "$module_dir/pom.xml" \
-        | sed 's/.*<artifactId>\(.*\)<\/artifactId>.*/\1/'
+      sed -n '/<parent>/,/<\/parent>/d; s/.*<artifactId>\(.*\)<\/artifactId>.*/\1/p' "$module_dir/pom.xml" \
+        | head -n 1
     )
     local version="999.0.0-SNAPSHOT"
     local jar_path="$module_dir/target/${artifact_id}-${version}.jar"
