@@ -389,6 +389,140 @@
         "user/Practitioner.read",
         "abac"
       ]
+    },
+    {
+      "clientId": "fhir-server",
+      "name": "FHIR Server Backend Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "rootUrl": "${KC_HOSTNAME}",
+      "protocolMappers": [
+        {
+          "name": "Audience Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "${FHIR_BASE_URL}",
+            "access.token.claim": "true"
+          }
+        }
+      ],
+      "optionalClientScopes": [
+        "fhirUser",
+        "abac"
+      ]
+    },
+    {
+      "clientId": "smart-on-web",
+      "name": "SMART on Web Frontend Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "rootUrl": "${KC_HOSTNAME}",
+      "redirectUris": [
+        "${KC_HOSTNAME}/*",
+        "http://localhost:3000/*"
+      ],
+      "protocolMappers": [
+        {
+          "name": "Group Membership Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "Preferred Username Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "optionalClientScopes": [
+        "fhirUser",
+        "launch/patient",
+        "patient/*.read",
+        "patient/Patient.read",
+        "abac"
+      ]
+    },
+    {
+      "clientId": "smart-on-mobile",
+      "name": "SMART on Mobile Frontend Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "rootUrl": "${KC_HOSTNAME}",
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "https://localhost/*"
+      ],
+      "protocolMappers": [
+        {
+          "name": "Group Membership Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "Preferred Username Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "optionalClientScopes": [
+        "fhirUser",
+        "launch/patient",
+        "patient/*.read",
+        "patient/Patient.read",
+        "abac"
+      ]
     }
   ]
 }

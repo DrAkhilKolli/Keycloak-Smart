@@ -29,7 +29,7 @@ COPY --chown=1000:0 keycloak-main/misc/smart-fhir-extensions/target/keycloak-sma
 COPY --chown=1000:0 keycloak-main/misc/smart-fhir-extensions/target/keycloak-theme-common-resources/theme/keycloak/common/resources/vendor /opt/keycloak/themes/keycloak/common/resources/vendor
 COPY --chown=1000:0 keycloak-main/misc/smart-fhir-extensions/examples/import/smart-fhir-realm-template.json /opt/keycloak/data/import-templates/smart-fhir-realm-template.json
 COPY --chown=1000:0 keycloak-main/misc/smart-fhir-extensions/start.sh /opt/keycloak/bin/start-smart-keycloak.sh
-COPY --chown=1000:0 keycloak-themes/clinivault /opt/keycloak/themes/clinivault
+COPY --chown=1000:0 keycloak-main/keycloak-themes/clinivault /opt/keycloak/themes/clinivault
 
 USER 1000
 
