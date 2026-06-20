@@ -7,7 +7,17 @@ TEMPLATE=/opt/keycloak/data/import-templates/smart-fhir-realm-template.json
 OUTPUT=/opt/keycloak/data/import/smart-fhir-realm.json
 
 mkdir -p /opt/keycloak/data/import
-envsubst < "$TEMPLATE" > "$OUTPUT"
+if command -v envsubst >/dev/null 2>&1; then
+  envsubst < "$TEMPLATE" > "$OUTPUT"
+else
+  # Fallback for minimal images where envsubst is not available.
+  cp "$TEMPLATE" "$OUTPUT"
+  vars=$(grep -o '\${[A-Za-z_][A-Za-z0-9_]*}' "$TEMPLATE" | tr -d '${}' | sort -u || true)
+  for var in $vars; do
+    value=$(printenv "$var" | sed 's/[\\/&]/\\&/g')
+    sed -i "s|\${$var}|$value|g" "$OUTPUT"
+  done
+fi
 
 # The image was pre-built with `kc.sh build` in the Dockerfile, so we must
 # invoke `start --optimized` at runtime.  If Docker CMD provides args (e.g.

@@ -2,7 +2,6 @@
   "realm": "${SMART_REALM}",
   "enabled": true,
   "browserFlow": "SMART App Launch",
-  "frontendUrl": "${KC_HOSTNAME}",
   "roles": {
     "realm": [
       {
