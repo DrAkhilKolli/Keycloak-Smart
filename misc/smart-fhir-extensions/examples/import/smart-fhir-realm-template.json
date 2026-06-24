@@ -1,7 +1,25 @@
 {
   "realm": "${SMART_REALM}",
   "enabled": true,
+  "displayName": "${SMART_REALM}",
   "browserFlow": "SMART App Launch",
+  "organizationsEnabled": false,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "loginTheme": "clinivault",
+  "accountTheme": "clinivault",
+  "adminTheme": "clinivault",
+  "emailTheme": "clinivault",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en"],
+  "defaultLocale": "en",
   "roles": {
     "realm": [
       {
@@ -390,6 +408,355 @@
       ]
     },
     {
+      "clientId": "clinivault-web",
+      "name": "Clinivault Web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "rootUrl": "https://clinivault.tech",
+      "redirectUris": [
+        "https://*.clinivault.tech/*",
+        "http://localhost:3000/*",
+        "http://localhost:5173/*",
+        "http://localhost:4173/*",
+        "http://localhost:4301/*",
+        "http://localhost:5147/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "Group Membership Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "Preferred Username Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "organization",
+        "offline_access",
+        "microprofile-jwt",
+        "fhirUser",
+        "launch/patient",
+        "patient/*.read",
+        "patient/Patient.read",
+        "user/*.read",
+        "user/Practitioner.read",
+        "abac"
+      ]
+    },
+    {
+      "clientId": "clinidesk-web",
+      "name": "CliniDesk",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://clinidesk.clinivault.tech/*",
+        "http://localhost:3000/*",
+        "http://localhost:4101/*",
+        "http://localhost:5173/*",
+        "http://localhost:4173/*",
+        "http://localhost:4301/*",
+        "http://localhost:5147/*"
+      ],
+      "webOrigins": [
+        "https://clinidesk.clinivault.tech",
+        "http://localhost:3000",
+        "http://localhost:4101",
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://localhost:4301",
+        "http://localhost:5147"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "organization",
+        "offline_access",
+        "microprofile-jwt",
+        "fhirUser",
+        "launch/patient",
+        "patient/*.read",
+        "patient/Patient.read",
+        "user/*.read",
+        "user/Practitioner.read",
+        "abac"
+      ]
+    },
+    {
+      "clientId": "clinidesk-web-dedicated",
+      "name": "CliniDesk Dedicated",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://clinidesk.clinivault.tech/*",
+        "http://localhost:3000/*",
+        "http://localhost:4101/*",
+        "http://localhost:5173/*",
+        "http://localhost:4173/*",
+        "http://localhost:4301/*",
+        "http://localhost:5147/*"
+      ],
+      "webOrigins": [
+        "https://clinidesk.clinivault.tech",
+        "http://localhost:3000",
+        "http://localhost:4101",
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://localhost:4301",
+        "http://localhost:5147"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "organization",
+        "offline_access",
+        "microprofile-jwt",
+        "fhirUser",
+        "launch/patient",
+        "patient/*.read",
+        "patient/Patient.read",
+        "user/*.read",
+        "user/Practitioner.read",
+        "abac"
+      ]
+    },
+    {
+      "clientId": "caredesk-web",
+      "name": "CareDesk",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://caredesk.clinivault.tech/*"],
+      "webOrigins": ["https://caredesk.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "user/Practitioner.read", "abac"]
+    },
+    {
+      "clientId": "patient-portal-web",
+      "name": "Patient Portal",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://patient-portal.clinivault.tech/*"],
+      "webOrigins": ["https://patient-portal.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "launch/patient", "patient/*.read", "patient/Patient.read", "abac"]
+    },
+    {
+      "clientId": "frontdesk-web",
+      "name": "FrontDesk",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://frontdesk.clinivault.tech/*"],
+      "webOrigins": ["https://frontdesk.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "abac"]
+    },
+    {
+      "clientId": "billsnclaim-web",
+      "name": "BillsnClaim",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://billsnclaim.clinivault.tech/*"],
+      "webOrigins": ["https://billsnclaim.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "abac"]
+    },
+    {
+      "clientId": "finvault-web",
+      "name": "FinVault",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://finvault.clinivault.tech/*"],
+      "webOrigins": ["https://finvault.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "abac"]
+    },
+    {
+      "clientId": "radinfos-web",
+      "name": "RadINFOS",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://radinfos.clinivault.tech/*"],
+      "webOrigins": ["https://radinfos.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "abac"]
+    },
+    {
+      "clientId": "diaglims-web",
+      "name": "DiagLIMS",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://diaglims.clinivault.tech/*"],
+      "webOrigins": ["https://diaglims.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "abac"]
+    },
+    {
+      "clientId": "pharmadesk-web",
+      "name": "PharmaDesk",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://pharmadesk.clinivault.tech/*"],
+      "webOrigins": ["https://pharmadesk.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "abac"]
+    },
+    {
+      "clientId": "fhir-studio-web",
+      "name": "FHIR Studio",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://fhir-studio.clinivault.tech/*"],
+      "webOrigins": ["https://fhir-studio.clinivault.tech"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "organization", "offline_access", "microprofile-jwt", "user/*.read", "launch/patient", "abac"]
+    },
+    {
+      "clientId": "clinivault-api",
+      "name": "Clinivault OAuth Relay",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://app.clinivault.tech/*"
+      ],
+      "webOrigins": [
+        "https://app.clinivault.tech"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "user/*.read",
+        "user/Practitioner.read",
+        "abac"
+      ]
+    },
+    {
+      "clientId": "integration-api",
+      "name": "Integration API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "optionalClientScopes": [
+        "abac"
+      ]
+    },
+    {
       "clientId": "fhir-server",
       "name": "FHIR Server Backend Client",
       "enabled": true,
@@ -414,6 +781,34 @@
       ],
       "optionalClientScopes": [
         "fhirUser",
+        "abac"
+      ]
+    },
+    {
+      "clientId": "mcp-server",
+      "name": "FHIR MCP Server",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "optionalClientScopes": [
+        "abac"
+      ]
+    },
+    {
+      "clientId": "clinivault-agents",
+      "name": "Clinivault AI Agents",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "optionalClientScopes": [
         "abac"
       ]
     },
