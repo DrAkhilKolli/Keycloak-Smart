@@ -795,6 +795,8 @@
       "serviceAccountsEnabled": true,
       "clientAuthenticatorType": "client-secret",
       "optionalClientScopes": [
+        "system/*.read",
+        "system/*.write",
         "abac"
       ]
     },
@@ -809,6 +811,8 @@
       "serviceAccountsEnabled": true,
       "clientAuthenticatorType": "client-secret",
       "optionalClientScopes": [
+        "system/*.read",
+        "system/*.write",
         "abac"
       ]
     },
