@@ -83,9 +83,6 @@ services:
       - start-dev
       - --import-realm
       - --health-enabled=true
-      - --spi-datastore-legacy-allow-migrate-existing-database-to-snapshot=true
-      - --spi-connections-jpa-quarkus-migration-strategy=update
-      - --spi-connections-jpa-quarkus-initialize-empty=true
 
   # ── Schema init (one-shot): uses the FHIR image itself ────────────────────
   # The FHIR image includes /opt/fhir-schema-cli.jar. We override the

@@ -5,7 +5,7 @@ services:
     image: ${SMART_FHIR_IMAGE:-fhir-server-local:dev}
     pull_policy: never   # always use the locally-built image; never pull upstream
     build:
-      context: ../../../fhir-server
+      context: ../../../FHIR-Server
       dockerfile: Dockerfile
     container_name: ${SMART_FHIR_CONTAINER_NAME:-smart-fhir-local}
     depends_on:
@@ -53,6 +53,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 90s
+    env_file:
+      - .env.smart-keycloak
     depends_on:
       fhir:
         condition: service_healthy
@@ -75,9 +77,6 @@ services:
       - start-dev
       - --import-realm
       - --health-enabled=true
-      - --spi-datastore-legacy-allow-migrate-existing-database-to-snapshot=true
-      - --spi-connections-jpa-quarkus-migration-strategy=update
-      - --spi-connections-jpa-quarkus-initialize-empty=true
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1

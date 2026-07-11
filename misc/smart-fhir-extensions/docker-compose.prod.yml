@@ -91,7 +91,6 @@ services:
       - --optimized
       - --import-realm
       - --health-enabled=true
-      - --spi-connections-jpa-quarkus-migration-strategy=update
 
   # ── One-shot schema migration (exits after completion) ────────────────────
   fhir-schema-init:

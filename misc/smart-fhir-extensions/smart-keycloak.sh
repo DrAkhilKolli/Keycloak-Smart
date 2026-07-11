@@ -233,7 +233,7 @@ build_fhir_image() {
   echo "=========================================="
   echo ""
   local fhir_dir
-  fhir_dir=$(CDPATH= cd -- "$SCRIPT_DIR/../../../fhir-server" && pwd)
+  fhir_dir=$(CDPATH= cd -- "$SCRIPT_DIR/../../../FHIR-Server" && pwd)
 
   if [[ ! -d "$fhir_dir" ]]; then
     echo -e "${RED}fhir-server directory not found at $fhir_dir${NC}" >&2

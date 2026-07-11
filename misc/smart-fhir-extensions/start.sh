@@ -40,6 +40,26 @@ if [ -n "${KC_DB_SCHEMA:-}" ]; then
   set -- "$@" "--db-schema=${KC_DB_SCHEMA}"
 fi
 
+# Default to HTTP in containerized environments unless HTTPS material is
+# explicitly provided. This avoids local startup failures such as:
+# "Key material not provided to setup HTTPS".
+if [ -z "${KC_HTTPS_KEY_STORE_FILE:-}" ] && [ -z "${KC_HTTPS_CERTIFICATE_FILE:-}" ] && [ -z "${KC_HTTPS_CERTIFICATE_KEY_FILE:-}" ]; then
+  KC_HTTP_ENABLED="${KC_HTTP_ENABLED:-true}"
+  if [ "$KC_HTTP_ENABLED" = "true" ]; then
+    set -- "$@" "--http-enabled=true"
+  fi
+  if [ -n "${KC_HTTP_PORT:-}" ]; then
+    set -- "$@" "--http-port=${KC_HTTP_PORT}"
+  fi
+fi
+
+# No migration-strategy override. The Keycloak default (update) handles both
+# a fresh empty schema and a fully-initialized schema correctly.
+# If the schema is in a broken partial-init state, reset it first:
+#   DROP SCHEMA IF EXISTS keycloak CASCADE;
+#   CREATE SCHEMA keycloak;
+#   GRANT ALL ON SCHEMA keycloak TO CURRENT_USER;
+
 # Ensure Keycloak knows its public-facing URL so the admin UI, CSP frame-src
 # and 3rd-party cookie check iframe all resolve to the correct host rather
 # than falling back to localhost:8080.
