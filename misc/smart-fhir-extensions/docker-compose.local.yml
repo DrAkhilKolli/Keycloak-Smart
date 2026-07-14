@@ -17,6 +17,8 @@ services:
       - "${SMART_FHIR_HTTP_PORT:-8081}:9080"
     environment:
       SMART_CLIENT_ID: ${SMART_CLIENT_ID}
+      KC_ISSUER: ${KC_ISSUER:-}
+      KC_JWKS_URI: ${KC_JWKS_URI:-}
       FHIR_DB_HOST: ${FHIR_DB_HOST:-postgres-fhir}
       FHIR_DB_PORT: ${FHIR_DB_PORT:-5432}
       FHIR_DB_NAME: ${FHIR_DB_NAME:-fhirdb}
